@@ -32,7 +32,7 @@ func GetAllResources(ctx *gin.Context) {
 }
 
 func PingResources(ctx *gin.Context) {
-	err := services.PingResources()
+	err := services.CheckResourceHeartbeat()
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
