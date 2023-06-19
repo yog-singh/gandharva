@@ -7,6 +7,7 @@ import (
 	"github.com/yog-singh/gandharva/src/db"
 	"github.com/yog-singh/gandharva/src/entity"
 	"github.com/yog-singh/gandharva/src/middleware"
+	"gorm.io/gorm"
 )
 
 func AddResource(resource entity.Resource) (entity.Resource, error) {
@@ -20,14 +21,16 @@ func AddResource(resource entity.Resource) (entity.Resource, error) {
 func GetAllResources() ([]entity.Resource, error) {
 	var resources []entity.Resource
 
-	if result := db.DB.Preload("Heartbeats", "(EXTRACT(epoch FROM (CURRENT_TIMESTAMP - created_at)) / 3600) < ?", 24).Find(&resources); result.Error != nil {
+	if result := db.DB.Preload("Heartbeats", func(db *gorm.DB) *gorm.DB {
+		return db.Order("heartbeats.created_at DESC").Limit(1)
+	}).Find(&resources); result.Error != nil {
 		fmt.Println(result.Error)
 		return []entity.Resource{}, result.Error
 	}
 	return resources, nil
 }
 
-func PingResources() error {
+func CheckResourceHeartbeat() error {
 	var resources []entity.Resource
 
 	if result := db.DB.Find(&resources); result.Error != nil {
