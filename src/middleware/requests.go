@@ -4,17 +4,23 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptrace"
+	"time"
 
 	"github.com/yog-singh/gandharva/src/entity"
+	"github.com/yog-singh/gandharva/src/model"
 )
 
-func CheckHeartbeat(resource entity.Resource) *http.Response {
+func CheckHeartbeat(resource entity.Resource) model.HTTPReponse {
 	var resp *http.Response
 	var req *http.Request
 	var err error
-	clientTrace := &httptrace.ClientTrace{}
+	var startTime, endTime time.Time
+	var requestCompletionTime int64
 
-	switch resource.Type {
+	requestStatistics := model.RequestStatistics{}
+	model.InitRequestStatistics(&requestStatistics)
+
+	switch resource.RequestMethod {
 	case "GET":
 		req, _ = http.NewRequest(http.MethodGet, resource.Url, nil)
 	case "POST":
@@ -26,13 +32,18 @@ func CheckHeartbeat(resource entity.Resource) *http.Response {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	clientTraceCtx := httptrace.WithClientTrace(req.Context(), clientTrace)
+	clientTraceCtx := httptrace.WithClientTrace(req.Context(), requestStatistics.ClientTrace)
 	req = req.WithContext(clientTraceCtx)
-	resp, err = http.DefaultClient.Do(req)
-
+	startTime = time.Now()
+	resp, err = http.DefaultTransport.RoundTrip(req)
+	endTime = time.Now()
 	if err != nil {
 		fmt.Printf("Error checking heartbeat for: %s \n", resource.Name)
 	}
-	fmt.Printf("Success checking heartbeat for: %s \n", resource.Name)
-	return resp
+
+	requestCompletionTime = (endTime.UnixNano() / int64(time.Millisecond)) - (startTime.UnixNano() / int64(time.Millisecond))
+	fmt.Printf("Latency(ms): %d \n", requestCompletionTime)
+	fmt.Printf("Response stats: %+v\n", requestStatistics)
+	response := model.HTTPReponse{RequestCompletionTimeInMs: requestCompletionTime, Response: resp}
+	return response
 }

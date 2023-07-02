@@ -7,6 +7,7 @@ import (
 	"github.com/yog-singh/gandharva/src/config"
 	"github.com/yog-singh/gandharva/src/db"
 	"github.com/yog-singh/gandharva/src/router"
+	"github.com/yog-singh/gandharva/src/services"
 )
 
 var (
@@ -27,6 +28,7 @@ func init() {
 	db.ConnectDB(&config)
 
 	server = gin.Default()
+	services.RunScheduledHeartbeatCheckService()
 }
 
 func main() {
