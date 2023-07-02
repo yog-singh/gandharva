@@ -11,6 +11,7 @@ import (
 )
 
 func AddResource(resource entity.Resource) (entity.Resource, error) {
+	entity.InitializeResource(resource)
 	if result := db.DB.Create(&resource); result.Error != nil {
 		fmt.Println(result.Error)
 		return entity.Resource{}, result.Error
@@ -20,10 +21,10 @@ func AddResource(resource entity.Resource) (entity.Resource, error) {
 
 func GetAllResources() ([]entity.Resource, error) {
 	var resources []entity.Resource
-	selectClause := `id, resouce_id, status_code, latency, response_body, created_at`
-	subQuery := `(select id, resouce_id, status_code, latency, response_body, created_at, row_number() over(partition by resouce_id order by created_at desc) as row_num from heartbeats) heartbeats`
+	selectClause := `id, resource_id, status_code, latency, response_body, created_at`
+	subQuery := `(select id, resource_id, status_code, latency, response_body, created_at, row_number() over(partition by resource_id order by created_at desc) as row_num from resource_heartbeats) resource_heartbeats`
 	if result := db.DB.Preload("Heartbeats", func(db *gorm.DB) *gorm.DB {
-		return db.Select(selectClause).Table(subQuery).Where("heartbeats.id = id AND heartbeats.row_num = 1")
+		return db.Select(selectClause).Table(subQuery).Where("resource_heartbeats.id = id AND resource_heartbeats.row_num = 1")
 	}).Find(&resources); result.Error != nil {
 		fmt.Println(result.Error)
 		return []entity.Resource{}, result.Error
@@ -34,18 +35,22 @@ func GetAllResources() ([]entity.Resource, error) {
 func CheckResourceHeartbeat() error {
 	var resources []entity.Resource
 
-	if result := db.DB.Find(&resources); result.Error != nil {
+	if result := db.DB.Where("((EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - last_checked_at)) / 60) > ping_interval_in_mins)").Find(&resources); result.Error != nil {
 		fmt.Println(result.Error)
 		return result.Error
 	}
 
 	for _, resource := range resources {
-		response := middleware.CheckHeartbeat(resource)
-		heartbeat := entity.NewHeartbeat(resource, *response)
-		db.DB.Create(&heartbeat)
-		resource.LastCheckedAt = time.Now()
-		db.DB.Save(resource)
+		go getResponseAndSaveHeartbeat(resource)
 	}
 
 	return nil
+}
+
+func getResponseAndSaveHeartbeat(resource entity.Resource) {
+	response := middleware.CheckHeartbeat(resource)
+	heartbeat := entity.NewHeartbeat(resource, response.Response, response.RequestCompletionTimeInMs)
+	db.DB.Create(&heartbeat)
+	resource.LastCheckedAt = time.Now()
+	db.DB.Save(resource)
 }

@@ -11,14 +11,22 @@ import (
 
 type Heartbeat struct {
 	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primary_key;"`
-	ResouceID    uuid.UUID `json:"resourceId" gorm:"type:uuid;"`
+	ResourceID   uuid.UUID `json:"resourceId" gorm:"type:uuid;"`
 	StatusCode   int       `json:"statusCode" gorm:"type:integer;"`
 	ResponseBody string    `json:"responseBody" gorm:"type:text;"`
-	Latency      int       `json:"latency" gorm:"type:integer;"`
+	Latency      int64     `json:"latency" gorm:"type:bigint;"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
 
-func NewHeartbeat(res Resource, response http.Response) Heartbeat {
+type Tabler interface {
+	TableName() string
+}
+
+func (Heartbeat) TableName() string {
+	return "resource_heartbeats"
+}
+
+func NewHeartbeat(res Resource, response *http.Response, latencyInMs int64) Heartbeat {
 	heartbeat := Heartbeat{}
 	heartbeat.StatusCode = response.StatusCode
 
@@ -27,6 +35,7 @@ func NewHeartbeat(res Resource, response http.Response) Heartbeat {
 		log.Fatalln(err)
 	}
 	heartbeat.ResponseBody = string(body)
-	heartbeat.ResouceID = res.ID
+	heartbeat.ResourceID = res.ID
+	heartbeat.Latency = latencyInMs
 	return heartbeat
 }

@@ -52,7 +52,7 @@
             {{end}}
             <div class="resources-div">
                 {{if eq $outage 1 }}
-                    <div class="my-3">
+                    <div id="outage-container" class="my-3">
                         <ul class="list-group">
                             <li class="list-group-item list-group-item-danger">Outage</li>
                             {{range $y := .Resources}}
@@ -63,10 +63,10 @@
                                                 {{$y.Name}}
                                                 <i class="fas fa-times-circle" style="color:#D34121;"></i>
                                             </li>
-                                            <div id="data-{{.ID}}" class="collapse" aria-labelledby="parent-{{.ID}}" data-parent="#operational-container">
+                                            <div id="data-{{.ID}}" class="collapse" aria-labelledby="parent-{{.ID}}" data-parent="#outage-container">
                                                 <div class="card card-body d-flex flex-row justify-content-between">
                                                   <span><i class="fas fa-globe"></i>  Status: {{.StatusCode}}</span>
-                                                  <span><i class="fas fa-stopwatch"></i> Latency: {{.Latency}}</span>
+                                                  <span><i class="fas fa-stopwatch"></i> Latency: {{.Latency}} ms</span>
                                                   <span><i class="fas fa-history"></i> Time: {{.CreatedAt.Format "Jan 02, 2006 15:04:05"}}</span>
                                                 </div>
                                             </div>
@@ -77,37 +77,35 @@
                         </ul>
                     </div>
                 {{end}}
-                {{if eq $operational 1 }}
-                    <div id="operational-container" class="my-3">
-                        <ul class="list-group">
-                            <li class="list-group-item list-group-item-success">Operational</li>
-                            {{range $y := .Resources}}
-                                {{if $y.Heartbeats}}
-                                    {{range $y.Heartbeats}}
-                                        {{if eq .StatusCode 200}}
-                                            <li id="parent-{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" role="button" data-toggle="collapse" data-target="#data-{{.ID}}" aria-expanded="true" aria-controls="data-{{.ID}}">
-                                                {{$y.Name}}
-                                                <i class="fas fa-check-circle" style="color:green;"></i>
-                                            </li>
-                                            <div id="data-{{.ID}}" class="collapse" aria-labelledby="parent-{{.ID}}" data-parent="#operational-container">
-                                                <div class="card card-body d-flex flex-row justify-content-between">
-                                                  <span><i class="fas fa-globe"></i> Status: {{.StatusCode}}</span>
-                                                  <span><i class="fas fa-stopwatch"></i> Latency: {{.Latency}}</span>
-                                                  <span><i class="fas fa-history"></i> Time: {{.CreatedAt.Format "Jan 02, 2006 15:04:05"}}</span>
-                                                </div>
+                <div id="operational-container" class="my-3">
+                    <ul class="list-group">
+                        <li class="list-group-item list-group-item-success">Operational</li>
+                        {{range $y := .Resources}}
+                            {{if $y.Heartbeats}}
+                                {{range $y.Heartbeats}}
+                                    {{if eq .StatusCode 200}}
+                                        <li id="parent-{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" role="button" data-toggle="collapse" data-target="#data-{{.ID}}" aria-expanded="true" aria-controls="data-{{.ID}}">
+                                            {{$y.Name}}
+                                            <i class="fas fa-check-circle" style="color:green;"></i>
+                                        </li>
+                                        <div id="data-{{.ID}}" class="collapse" aria-labelledby="parent-{{.ID}}" data-parent="#operational-container">
+                                            <div class="card card-body d-flex flex-row justify-content-between">
+                                                <span><i class="fas fa-globe"></i> Status: {{.StatusCode}}</span>
+                                                <span><i class="fas fa-stopwatch"></i> Latency: {{.Latency}} ms</span>
+                                                <span><i class="fas fa-history"></i> Time: {{.CreatedAt.Format "Jan 02, 2006 15:04:05"}}</span>
                                             </div>
-                                        {{end}}
+                                        </div>
                                     {{end}}
-                                {{else}}
-                                    <li id="parent-{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" role="button" data-toggle="collapse" data-target="#data-{{.ID}}" aria-expanded="true" aria-controls="data-{{.ID}}">
-                                        {{$y.Name}}
-                                        <i class="fas fa-hourglass-start" style="color: #f2ad36;"></i>
-                                    </li>
                                 {{end}}
+                            {{else}}
+                                <li id="parent-{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" role="button" data-toggle="collapse" data-target="#data-{{.ID}}" aria-expanded="true" aria-controls="data-{{.ID}}">
+                                    {{$y.Name}}
+                                    <i class="fas fa-hourglass-start" style="color: #f2ad36;"></i>
+                                </li>
                             {{end}}
-                        </ul>
-                    </div>
-                {{end}}
+                        {{end}}
+                    </ul>
+                </div>
             </div>
             <footer>
                 <p>Powered by <a href="https://github.com/yog-singh/gandharva">Gandharva</a></p>
@@ -144,6 +142,10 @@
                                 <option value="DELETE">DELETE</option>
                         </select>
                         </div>
+                        <div class="form-group">
+                            <label for="data-ping-interval">Ping Interval</label>
+                            <input type="number" class="form-control" id="data-ping-interval" placeholder="In minutes" min="1" max="999999">
+                        </div>
                     </div>
                   <div class="modal-footer border-top-0 d-flex justify-content-center">
                     <button type="submit" class="btn btn-success">Submit</button>
@@ -163,6 +165,10 @@
             let name = document.getElementById("data-name");
             let url = document.getElementById("data-url");
             let method = document.getElementById("data-request-method");
+            let pingInterval = document.getElementById("data-ping-interval");
+            if (pingInterval.value == "") {
+                pingInterval.value = 60;
+            }
 
             if (name.value == "" || url.value == "" || method.value === "Select Request Method") {
                 
@@ -172,7 +178,8 @@
                 axios.post("{{.BaseURL}}/resources/", {
                     name: name.value,
                     url: url.value,
-                    type: method.value
+                    requestMethod: method.value,
+                    pingIntervalInMins: parseInt(pingInterval.value)
                 })
                     .then((response) => console.log(response.data))
                     .then((error) => console.log(error));
