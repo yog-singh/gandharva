@@ -16,12 +16,9 @@ type RequestStatistics struct {
 	ConnectDoneTime          time.Time
 	TLSHandshakeStartTime    time.Time
 	TLSHandshakeDoneTime     time.Time
+	ReadResponseDoneTime     time.Time
 
 	ClientTrace *httptrace.ClientTrace
-}
-
-type clientTrace struct {
-	stats RequestStatistics
 }
 
 func InitRequestStatistics(requestStats *RequestStatistics) {
@@ -40,17 +37,14 @@ func InitRequestStatistics(requestStats *RequestStatistics) {
 
 func (h *RequestStatistics) dnsStart(dnsStartInfo httptrace.DNSStartInfo) {
 	h.DNSStartTime = time.Now()
-	fmt.Printf("DNS Start Info: %+v\n", dnsStartInfo)
 }
 
 func (h *RequestStatistics) dnsDone(dnsDoneInfo httptrace.DNSDoneInfo) {
 	h.DNSDoneTime = time.Now()
-	fmt.Printf("DNS Done Info: %+v\n", dnsDoneInfo)
 }
 
 func (h *RequestStatistics) connectStart(network, addr string) {
 	h.ConnectStartTime = time.Now()
-	fmt.Printf("Connecting to: %s : %s\n", network, addr)
 }
 
 func (h *RequestStatistics) connectDone(network, addr string, err error) {
@@ -64,15 +58,12 @@ func (h *RequestStatistics) connectDone(network, addr string, err error) {
 
 func (h *RequestStatistics) tlsHandshakeStart() {
 	h.TLSHandshakeStartTime = time.Now()
-	fmt.Printf("Starting TLS handshake...\n")
 }
 
 func (h *RequestStatistics) tlsHandshakeDone(cs tls.ConnectionState, err error) {
 	h.TLSHandshakeDoneTime = time.Now()
-	fmt.Printf("TLS handshake done...\n")
 }
 
 func (h *RequestStatistics) gotFirstResponseByte() {
 	h.GotFirstResponseByteTime = time.Now()
-	fmt.Printf("Received first response byte...\n")
 }
