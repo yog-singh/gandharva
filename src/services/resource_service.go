@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/yog-singh/gandharva/src/db"
@@ -11,7 +12,7 @@ import (
 )
 
 func AddResource(resource entity.Resource) (entity.Resource, error) {
-	entity.InitializeResource(resource)
+	entity.InitializeResource(&resource)
 	if result := db.DB.Create(&resource); result.Error != nil {
 		fmt.Println(result.Error)
 		return entity.Resource{}, result.Error
@@ -51,6 +52,17 @@ func getResponseAndSaveHeartbeat(resource entity.Resource) {
 	response := middleware.CheckHeartbeat(resource)
 	heartbeat := entity.NewHeartbeat(resource, response.Response, response.RequestCompletionTimeInMs)
 	db.DB.Create(&heartbeat)
-	resource.LastCheckedAt = time.Now()
+	updateResourceStatus(&resource, response.Response)
 	db.DB.Save(resource)
+}
+
+func updateResourceStatus(resource *entity.Resource, response *http.Response) {
+	if response.StatusCode >= 200 && response.StatusCode <= 299 {
+		resource.Status = entity.RESOURCE_UP
+	} else if response.StatusCode >= 400 && response.StatusCode <= 499 {
+		resource.Status = entity.RESOURCE_INACCESSIBLE
+	} else if response.StatusCode >= 500 && response.StatusCode <= 599 {
+		resource.Status = entity.RESOURCE_DOWN
+	}
+	resource.LastCheckedAt = time.Now()
 }
