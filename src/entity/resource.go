@@ -20,11 +20,12 @@ type Resource struct {
 
 // Resource States
 const (
-	PENDING       = "PENDING"
-	RESOURCE_UP   = "RESOURCE_UP"
-	RESOURCE_DOWN = "RESOURCE_DOWN"
+	PENDING               = "PENDING"
+	RESOURCE_UP           = "RESOURCE_UP"
+	RESOURCE_DOWN         = "RESOURCE_DOWN"
+	RESOURCE_INACCESSIBLE = "RESOURCE_INACCESSIBLE"
 )
 
-func InitializeResource(resource Resource) {
+func InitializeResource(resource *Resource) {
 	resource.Status = PENDING
 }
