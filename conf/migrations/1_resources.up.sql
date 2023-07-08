@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS resource_heartbeats (
     status_code             INTEGER NOT NULL,
     response_body           TEXT,
     latency                 BIGINT NOT NULL,
+    http_timing             JSONB,
     created_at              TIMESTAMP,
     CONSTRAINT  pk_resource_heartbeats PRIMARY KEY (id),
     CONSTRAINT  fk_resource_heartbeats_resource FOREIGN KEY (resource_id) REFERENCES resources (id)

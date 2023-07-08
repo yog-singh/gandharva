@@ -22,8 +22,8 @@ func AddResource(resource entity.Resource) (entity.Resource, error) {
 
 func GetAllResources() ([]entity.Resource, error) {
 	var resources []entity.Resource
-	selectClause := `id, resource_id, status_code, latency, response_body, created_at`
-	subQuery := `(select id, resource_id, status_code, latency, response_body, created_at, row_number() over(partition by resource_id order by created_at desc) as row_num from resource_heartbeats) resource_heartbeats`
+	selectClause := `id, resource_id, status_code, latency, response_body, http_timing, created_at`
+	subQuery := `(select id, resource_id, status_code, latency, response_body, http_timing, created_at, row_number() over(partition by resource_id order by created_at desc) as row_num from resource_heartbeats) resource_heartbeats`
 	if result := db.DB.Preload("Heartbeats", func(db *gorm.DB) *gorm.DB {
 		return db.Select(selectClause).Table(subQuery).Where("resource_heartbeats.id = id AND resource_heartbeats.row_num = 1")
 	}).Find(&resources); result.Error != nil {
@@ -50,7 +50,7 @@ func CheckResourceHeartbeat() error {
 
 func getResponseAndSaveHeartbeat(resource entity.Resource) {
 	response := middleware.CheckHeartbeat(resource)
-	heartbeat := entity.NewHeartbeat(resource, response.Response, response.RequestCompletionTimeInMs)
+	heartbeat := entity.NewHeartbeat(resource, response.Response, response.RequestCompletionTimeInMs, response.ResponseBody, response.HTTPTiming)
 	db.DB.Create(&heartbeat)
 	updateResourceStatus(&resource, response.Response)
 	db.DB.Save(resource)

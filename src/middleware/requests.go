@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptrace"
 	"time"
@@ -36,14 +38,28 @@ func CheckHeartbeat(resource entity.Resource) model.HTTPReponse {
 	req = req.WithContext(clientTraceCtx)
 	startTime = time.Now()
 	resp, err = http.DefaultTransport.RoundTrip(req)
-	endTime = time.Now()
 	if err != nil {
 		fmt.Printf("Error checking heartbeat for: %s \n", resource.Name)
 	}
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	endTime = time.Now()
+	requestStatistics.ReadResponseDoneTime = endTime
 
 	requestCompletionTime = (endTime.UnixNano() / int64(time.Millisecond)) - (startTime.UnixNano() / int64(time.Millisecond))
-	fmt.Printf("Latency(ms): %d \n", requestCompletionTime)
-	fmt.Printf("Response stats: %+v\n", requestStatistics)
-	response := model.HTTPReponse{RequestCompletionTimeInMs: requestCompletionTime, Response: resp}
+	httpTiming := getHTTPTiming(requestStatistics)
+	response := model.HTTPReponse{RequestCompletionTimeInMs: requestCompletionTime, Response: resp, ResponseBody: responseBody, HTTPTiming: httpTiming}
 	return response
+}
+
+func getHTTPTiming(rs model.RequestStatistics) entity.HTTPTiming {
+	httpTiming := entity.HTTPTiming{}
+	httpTiming.DNSLookupTime = (rs.DNSDoneTime.UnixNano() / int64(time.Millisecond)) - (rs.DNSStartTime.UnixNano() / int64(time.Millisecond))
+	httpTiming.ConnectionTime = (rs.ConnectDoneTime.UnixNano() / int64(time.Millisecond)) - (rs.ConnectStartTime.UnixNano() / int64(time.Millisecond))
+	httpTiming.TLSHandshakeTime = (rs.TLSHandshakeDoneTime.UnixNano() / int64(time.Millisecond)) - (rs.TLSHandshakeStartTime.UnixNano() / int64(time.Millisecond))
+	httpTiming.FirstByteWaitTime = (rs.GotFirstResponseByteTime.UnixNano() / int64(time.Millisecond)) - (rs.RequestStartTime.UnixNano() / int64(time.Millisecond))
+	httpTiming.TotalTime = (rs.ReadResponseDoneTime.UnixNano() / int64(time.Millisecond)) - (rs.RequestStartTime.UnixNano() / int64(time.Millisecond))
+	return httpTiming
 }
