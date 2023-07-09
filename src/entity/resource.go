@@ -13,6 +13,7 @@ type Resource struct {
 	RequestMethod      string      `json:"requestMethod" gorm:"type:varchar(32);"`
 	PingIntervalInMins int         `json:"pingIntervalInMins" gorm:"type:integer;"`
 	Status             string      `json:"status" gorm:"type:varchar(64);`
+	ExpectedStatusCode int         `json:"expectedStatusCode" gorm:"type:integer;"`
 	LastCheckedAt      time.Time   `json:"lastCheckedAt" gorm:"type:timestamp;"`
 	CreatedAt          time.Time   `json:"createdAt" gorm:"type:timestamp;"`
 	Heartbeats         []Heartbeat `json:"heartbeats" gorm:"foreignKey:ResourceID;"`
