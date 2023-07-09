@@ -57,12 +57,21 @@ func getResponseAndSaveHeartbeat(resource entity.Resource) {
 }
 
 func updateResourceStatus(resource *entity.Resource, response *http.Response) {
-	if response.StatusCode >= 200 && response.StatusCode <= 299 {
-		resource.Status = entity.RESOURCE_UP
-	} else if response.StatusCode >= 400 && response.StatusCode <= 499 {
-		resource.Status = entity.RESOURCE_INACCESSIBLE
-	} else if response.StatusCode >= 500 && response.StatusCode <= 599 {
-		resource.Status = entity.RESOURCE_DOWN
+	if resource.ExpectedStatusCode == 0 {
+		if response.StatusCode >= 200 && response.StatusCode <= 299 {
+			resource.Status = entity.RESOURCE_UP
+		} else if response.StatusCode >= 400 && response.StatusCode <= 499 {
+			resource.Status = entity.RESOURCE_INACCESSIBLE
+		} else if response.StatusCode >= 500 && response.StatusCode <= 599 {
+			resource.Status = entity.RESOURCE_DOWN
+		}
+	} else {
+		if response.StatusCode == resource.ExpectedStatusCode {
+			resource.Status = entity.RESOURCE_UP
+		} else {
+			resource.Status = entity.RESOURCE_DOWN
+		}
 	}
+
 	resource.LastCheckedAt = time.Now()
 }

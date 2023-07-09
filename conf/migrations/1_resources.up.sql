@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS resources (
     request_method          VARCHAR(32) NOT NULL,
     ping_interval_in_mins   INTEGER NOT NULL,
     status                  VARCHAR(64) NOT NULL,
+    expected_status_code    INTEGER,
     last_checked_at         TIMESTAMP,
     created_at              TIMESTAMP,
     CONSTRAINT  pk_resources PRIMARY KEY (id)
