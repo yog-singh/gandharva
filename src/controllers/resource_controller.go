@@ -40,7 +40,7 @@ func GetStatusPage(ctx *gin.Context) {
 		return
 	}
 	config, _ := config.LoadConfig(".")
-	htmlDataMap := model.HTMLTemplateData{BaseURL: config.BaseURL, Resources: response}
+	htmlDataMap := model.GenerateStatusPageHTMLPayload(config.BaseURL, response)
 	ctx.HTML(http.StatusOK, "index.tmpl", htmlDataMap)
 }
 
